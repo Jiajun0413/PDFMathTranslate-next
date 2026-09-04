@@ -10,7 +10,7 @@ maintainers = [
 ]
 license = "AGPL-3.0"
 readme = "README.md"
-requires-python = ">=3.10,<3.14"
+requires-python = ">=3.10,<3.15"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -18,7 +18,7 @@ classifiers = [
 dependencies = [
     "requests",
     # for arm64 linux whells
-    "pymupdf<1.25.3",
+    "pymupdf>=1.26.7",
     "tqdm",
     "tenacity",
     "numpy",
@@ -33,7 +33,7 @@ dependencies = [
     "gradio-pdf>=0.0.21",
     "peewee>=3.17.8",
     "fontTools",
-    "babeldoc>=0.6.2,<0.7.0",
+    "babeldoc>=0.6.4,<0.7.0",
     "rich",
     "pydantic-settings>=2.8.1",
     "pydantic>=2.10.6",
