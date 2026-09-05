@@ -30,6 +30,9 @@ class OpenAITranslator(BaseTranslator):
             base_url=settings.translate_engine_settings.openai_base_url,
             api_key=settings.translate_engine_settings.openai_api_key,
             timeout=float(self.timeout) if self.timeout else openai.NOT_GIVEN,
+            # Some OpenAI-compatible proxies' WAF blocks the SDK's default
+            # "OpenAI/Python" User-Agent with HTTP 403. Send a neutral UA.
+            default_headers={"User-Agent": "pdf2zh-next"},
             http_client=httpx.Client(
                 limits=httpx.Limits(
                     max_connections=None, max_keepalive_connections=None
