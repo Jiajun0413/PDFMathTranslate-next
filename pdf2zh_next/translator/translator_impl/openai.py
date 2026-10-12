@@ -30,6 +30,9 @@ class OpenAITranslator(BaseTranslator):
             base_url=settings.translate_engine_settings.openai_base_url,
             api_key=settings.translate_engine_settings.openai_api_key,
             timeout=float(self.timeout) if self.timeout else openai.NOT_GIVEN,
+            # Some OpenAI-compatible proxies' WAF blocks the SDK's default
+            # "OpenAI/Python" User-Agent with HTTP 403. Send a neutral UA.
+            default_headers={"User-Agent": "pdf2zh-next"},
             http_client=httpx.Client(
                 limits=httpx.Limits(
                     max_connections=None, max_keepalive_connections=None
@@ -42,7 +45,7 @@ class OpenAITranslator(BaseTranslator):
             settings.translate_engine_settings.openai_reasoning_effort
         )
         self.send_temperature = (
-            settings.translate_engine_settings.openai_send_temprature
+            settings.translate_engine_settings.openai_send_temperature
         )
         self.send_reasoning_effort = (
             settings.translate_engine_settings.openai_send_reasoning_effort
@@ -73,13 +76,7 @@ class OpenAITranslator(BaseTranslator):
         if self.enable_json_mode:
             self.add_cache_impact_parameters("enable_json_mode", self.enable_json_mode)
 
-    @retry(
-        retry=retry_if_exception_type(openai.RateLimitError),
-        stop=stop_after_attempt(100),
-        wait=wait_exponential(multiplier=1, min=1, max=15),
-        before_sleep=before_sleep_log(logger, logging.WARNING),
-    )
-    def do_translate(self, text, rate_limit_params: dict = None) -> str:
+    def _request_options(self, rate_limit_params: dict = None) -> dict:
         options = self.options.copy()
         if (
             self.enable_json_mode
@@ -87,12 +84,9 @@ class OpenAITranslator(BaseTranslator):
             and rate_limit_params.get("request_json_mode", False)
         ):
             options["response_format"] = {"type": "json_object"}
+        return options
 
-        response = self.client.chat.completions.create(
-            model=self.model,
-            **options,
-            messages=self.prompt(text),
-        )
+    def _record_usage(self, response) -> None:
         try:
             if hasattr(response, "usage") and response.usage:
                 if hasattr(response.usage, "total_tokens"):
@@ -113,10 +107,24 @@ class OpenAITranslator(BaseTranslator):
                     )
         except Exception as e:
             logger.error(f"Error getting token usage: {e}")
-            pass
-        message = response.choices[0].message.content.strip()
-        message = self._remove_cot_content(message)
-        return message
+
+    def _complete(self, messages, rate_limit_params: dict = None) -> str:
+        response = self.client.chat.completions.create(
+            model=self.model,
+            **self._request_options(rate_limit_params),
+            messages=messages,
+        )
+        self._record_usage(response)
+        return self._remove_cot_content(response.choices[0].message.content.strip())
+
+    @retry(
+        retry=retry_if_exception_type(openai.RateLimitError),
+        stop=stop_after_attempt(100),
+        wait=wait_exponential(multiplier=1, min=1, max=15),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+    )
+    def do_translate(self, text, rate_limit_params: dict = None) -> str:
+        return self._complete(self.prompt(text), rate_limit_params)
 
     @retry(
         retry=retry_if_exception_type(openai.RateLimitError),
@@ -127,45 +135,4 @@ class OpenAITranslator(BaseTranslator):
     def do_llm_translate(self, text, rate_limit_params: dict = None):
         if text is None:
             return None
-        options = self.options.copy()
-        if (
-            self.enable_json_mode
-            and rate_limit_params
-            and rate_limit_params.get("request_json_mode", False)
-        ):
-            options["response_format"] = {"type": "json_object"}
-
-        response = self.client.chat.completions.create(
-            model=self.model,
-            **options,
-            messages=[
-                {
-                    "role": "user",
-                    "content": text,
-                },
-            ],
-        )
-        try:
-            if hasattr(response, "usage") and response.usage:
-                if hasattr(response.usage, "total_tokens"):
-                    self.token_count.inc(response.usage.total_tokens)
-                if hasattr(response.usage, "prompt_tokens"):
-                    self.prompt_token_count.inc(response.usage.prompt_tokens)
-                if hasattr(response.usage, "completion_tokens"):
-                    self.completion_token_count.inc(response.usage.completion_tokens)
-                if hasattr(response.usage, "prompt_cache_hit_tokens"):
-                    self.cache_hit_prompt_token_count.inc(
-                        response.usage.prompt_cache_hit_tokens
-                    )
-                elif hasattr(response.usage, "prompt_tokens_details") and hasattr(
-                    response.usage.prompt_tokens_details, "cached_tokens"
-                ):
-                    self.cache_hit_prompt_token_count.inc(
-                        response.usage.prompt_tokens_details.cached_tokens
-                    )
-        except Exception as e:
-            logger.error(f"Error getting token usage: {e}")
-            pass
-        message = response.choices[0].message.content.strip()
-        message = self._remove_cot_content(message)
-        return message
+        return self._complete([{"role": "user", "content": text}], rate_limit_params)

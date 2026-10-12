@@ -7,9 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import sys
-from pathlib import Path
 
 import babeldoc.assets.assets
 
@@ -19,31 +17,6 @@ from pdf2zh_next.high_level import do_translate_file_async
 __version__ = "2.9.0"
 
 logger = logging.getLogger(__name__)
-
-
-def find_all_files_in_directory(directory_path):
-    """
-    Recursively search all PDF files in the given directory and return their paths as a list.
-
-    :param directory_path: str, the path to the directory to search
-    :return: list of PDF file paths
-    """
-    directory_path = Path(directory_path)
-    # Check if the provided path is a directory
-    if not directory_path.is_dir():
-        raise ValueError(f"The provided path '{directory_path}' is not a directory.")
-
-    file_paths = []
-
-    # Walk through the directory recursively
-    for root, _, files in os.walk(directory_path):
-        for file in files:
-            # Check if the file is a PDF
-            if file.lower().endswith(".pdf"):
-                # Append the full file path to the list
-                file_paths.append(Path(root) / file)
-
-    return file_paths
 
 
 async def main() -> int:

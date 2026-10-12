@@ -12,6 +12,11 @@ def _gui(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["pytest"])
     import pdf2zh_next.gui as gui
 
+    # The fixtures below feed engine API keys through the GUI password inputs
+    # (ui_inputs), which _build_translate_settings only reads while the
+    # sensitive-input channel is enabled. Pin it on instead of inheriting the
+    # developer's local config file, which may disable it.
+    monkeypatch.setattr(gui, "disable_gui_sensitive_input", False)
     return gui
 
 
