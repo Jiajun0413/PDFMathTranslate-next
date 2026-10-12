@@ -29,11 +29,14 @@ dependencies = [
     "azure-ai-translation-text<=1.0.1",
     # 5.36 has a bug, webui starts with a white screen
     "gradio<5.36",
-    "tencentcloud-sdk-python-tmt",
+    # tmt 3.1.x 遗漏 TextTranslateRequest，需保留 3.0.x 系列
+    "tencentcloud-sdk-python-tmt<3.1.0",
     "gradio-pdf>=0.0.21",
     "peewee>=3.17.8",
     "fontTools",
     "babeldoc>=0.6.4,<0.7.0",
+    # babeldoc 0.6.4 仍从 bitstring 导入 4.x 的 BitStream（5.0 已移除），上游未加上界
+    "bitstring>=4.3.0,<5",
     "rich",
     "pydantic-settings>=2.8.1",
     "pydantic>=2.10.6",
@@ -72,14 +75,7 @@ build-backend = "hatchling.build"
 
 [project.scripts]
 pdf2zh = "pdf2zh_next.main:cli"
-pdf2zh2 = "pdf2zh_next.main:cli"
 pdf2zh_next = "pdf2zh_next.main:cli"
-
-[tool.flake8]
-ignore = ["E203", "E261", "E501", "W503", "E741"]
-max-line-length = 88
-
-
 
 [bumpver]
 current_version = "2.9.0"

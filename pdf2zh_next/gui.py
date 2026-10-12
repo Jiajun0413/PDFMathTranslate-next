@@ -853,7 +853,9 @@ def _build_translate_settings(
                     if field_name in GUI_SENSITIVE_FIELDS:
                         continue
                 value = ui_inputs.get(field_name)
-                type_hint = detail_setting.model_fields[field_name].annotation
+                type_hint = metadata.setting_model_type.model_fields[
+                    field_name
+                ].annotation
                 original_type = typing.get_origin(type_hint)
                 type_args = typing.get_args(type_hint)
                 if type_hint is str or str in type_args:

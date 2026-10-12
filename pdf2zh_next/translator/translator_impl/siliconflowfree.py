@@ -87,15 +87,23 @@ class SiliconFlowFreeTranslator(BaseTranslator):
     def get_fast_service(self):
         """Find the fastest responding endpoint by sending parallel requests."""
 
+        def timed_check(endpoint):
+            start_time = time.time()
+            success = self.check_server_status(endpoint)
+            return success, time.time() - start_time
+
         def test_endpoint_speed(endpoint):
             """Test a single endpoint 3 times and return (endpoint, total_response_time, success)."""
+            # The 3 probes run concurrently, so an unreachable endpoint costs
+            # one 5s timeout instead of three.
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                probes = [executor.submit(timed_check, endpoint) for _ in range(3)]
+
             total_response_time = 0
             success_count = 0
 
-            for i in range(3):
-                start_time = time.time()
-                success = self.check_server_status(endpoint)
-                response_time = time.time() - start_time
+            for i, probe in enumerate(probes):
+                success, response_time = probe.result()
                 total_response_time += response_time
 
                 if success:

@@ -102,10 +102,8 @@ class OpenAISettings(BaseModel):
         default=None, description="Enable JSON mode for OpenAI service"
     )
 
-    # This parameter contains a spelling error, but it will not be corrected for compatibility reasons.
-    # For details, see: https://github.com/PDFMathTranslate-next/PDFMathTranslate-next/issues/175#issuecomment-3213568681
-    openai_send_temprature: bool | None = Field(
-        default=None, description="Send temprature to OpenAI service"
+    openai_send_temperature: bool | None = Field(
+        default=None, description="Send temperature to OpenAI service"
     )
     openai_send_reasoning_effort: bool | None = Field(
         default=None, description="Send reasoning effort to OpenAI service"
@@ -123,7 +121,7 @@ class OpenAISettings(BaseModel):
         )
         self.openai_temperature = _clean_string(self.openai_temperature)
         self.openai_reasoning_effort = _clean_string(self.openai_reasoning_effort)
-        if self.openai_send_temprature:
+        if self.openai_send_temperature:
             if not self.openai_temperature:
                 raise ValueError(
                     "Temperature is required when send temperature is enabled"
@@ -783,7 +781,7 @@ class OpenAICompatibleSettings(BaseModel):
             openai_timeout=self.openai_compatible_timeout,
             openai_temperature=self.openai_compatible_temperature,
             openai_reasoning_effort=self.openai_compatible_reasoning_effort,
-            openai_send_temprature=self.openai_compatible_send_temperature,
+            openai_send_temperature=self.openai_compatible_send_temperature,
             openai_send_reasoning_effort=self.openai_compatible_send_reasoning_effort,
             openai_enable_json_mode=self.openai_compatible_enable_json_mode,
         )
@@ -857,7 +855,7 @@ class AliyunDashScopeSettings(BaseModel):
             openai_base_url=self.aliyun_dashscope_base_url,
             openai_timeout=self.aliyun_dashscope_timeout,
             openai_temperature=self.aliyun_dashscope_temperature,
-            openai_send_temprature=self.aliyun_dashscope_send_temperature,
+            openai_send_temperature=self.aliyun_dashscope_send_temperature,
             openai_enable_json_mode=self.aliyun_dashscope_enable_json_mode,
         )
 
